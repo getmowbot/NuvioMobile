@@ -1,0 +1,29 @@
+{
+  "name": "Nuvio + AetherEngine",
+  "subtitle": "Nuvio with the AetherEngine player: Dolby Vision, Dolby Atmos, lossless audio.",
+  "description": "Unofficial build of Nuvio that follows every upstream release and adds AetherEngine as a third player on iOS, next to the internal MPV player and external apps.\n\nAetherEngine plays through Apple's native pipeline: Dolby Vision (profiles 5, 7, 8 and AV1), HDR10+, Dolby Atmos passthrough, and lossless multichannel audio for TrueHD and DTS-HD MA.\n\nPick it in Settings > Playback > Player.",
+  "website": "https://nuvio.tv",
+  "iconURL": "https://raw.githubusercontent.com/NuvioMedia/NuvioMobile/0.4.11/iosApp/iosApp/Assets.xcassets/AppIcon.appiconset/app-icon-1024.png",
+  "tintColor": "#1E88E5",
+  "featuredApps": [
+    "com.nuvio.media"
+  ],
+  "apps": [
+    {
+      "name": "Nuvio + AetherEngine",
+      "bundleIdentifier": "com.nuvio.media",
+      "developerName": "Nuvio fork with AetherEngine",
+      "subtitle": "Nuvio with the AetherEngine player: Dolby Vision, Dolby Atmos, lossless audio.",
+      "localizedDescription": "Unofficial build of Nuvio that follows every upstream release and adds AetherEngine as a third player on iOS, next to the internal MPV player and external apps.\n\nAetherEngine plays through Apple's native pipeline: Dolby Vision (profiles 5, 7, 8 and AV1), HDR10+, Dolby Atmos passthrough, and lossless multichannel audio for TrueHD and DTS-HD MA.\n\nPick it in Settings > Playback > Player.",
+      "iconURL": "https://raw.githubusercontent.com/NuvioMedia/NuvioMobile/0.4.11/iosApp/iosApp/Assets.xcassets/AppIcon.appiconset/app-icon-1024.png",
+      "tintColor": "#1E88E5",
+      "category": "entertainment",
+      "versions": [],
+      "appPermissions": {
+        "entitlements": [],
+        "privacy": {}
+      }
+    }
+  ],
+  "news": []
+}

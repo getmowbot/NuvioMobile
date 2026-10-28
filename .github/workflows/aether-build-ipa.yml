@@ -1,0 +1,273 @@
+name: Aether - Build IPA
+
+# Builds the unsigned "full" IPA with the AetherEngine player, checks that AetherEngine is linked
+# the way it must be, and optionally publishes it: a GitHub release plus the AltStore / SideStore
+# source in aether/altstore-source.json.
+
+on:
+  workflow_dispatch:
+    inputs:
+      configuration:
+        description: Build configuration (only Release builds can be published)
+        type: choice
+        options:
+          - Release
+          - Debug
+        default: Release
+      publish:
+        description: Publish a GitHub release and update the AltStore source
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      ref:
+        description: Branch to build and to commit the AltStore source to (defaults to the caller's)
+        type: string
+        default: ""
+      configuration:
+        type: string
+        default: Release
+      publish:
+        type: boolean
+        default: true
+      upstream_tag:
+        description: Upstream release this build follows, for the release notes
+        type: string
+        default: ""
+    secrets:
+      FORK_SYNC_TOKEN:
+        required: false
+      NUVIO_LOCAL_PROPERTIES_BASE64:
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: aether-build-${{ inputs.ref || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build ${{ inputs.configuration }} IPA
+    runs-on: ${{ vars.AETHER_MACOS_RUNNER || 'xcode-27' }}
+    timeout-minutes: 150
+    env:
+      DEVELOPER_DIR: ${{ vars.AETHER_DEVELOPER_DIR || '/Applications/Xcode_27.1.app/Contents/Developer' }}
+      GRADLE_OPTS: -Dfile.encoding=UTF-8
+      IOS_CONFIGURATION: ${{ inputs.configuration }}
+      KOTLIN_DAEMON_JVMARGS: -Xmx2048M
+      NUVIO_GRADLE_JVMARGS: -Xmx4608M -Dfile.encoding=UTF-8 -XX:MaxMetaspaceSize=768M
+      NUVIO_KOTLIN_NATIVE_JVMARGS: -Xmx4608M
+      RELEASE_PROPERTIES_BASE64: ${{ secrets.NUVIO_LOCAL_PROPERTIES_BASE64 }}
+      BRANCH: ${{ inputs.ref || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    outputs:
+      tag: ${{ steps.release.outputs.tag }}
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          fetch-depth: 0
+          # A token with the "workflows" permission is only needed to push; the default one works
+          # for the AltStore source commit unless the branch is protected.
+          token: ${{ secrets.FORK_SYNC_TOKEN || github.token }}
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+
+      - name: Cache Kotlin Native
+        uses: actions/cache@v5
+        with:
+          path: ~/.konan
+          key: konan-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('gradle/libs.versions.toml') }}
+          restore-keys: |
+            konan-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Locate derived data
+        id: paths
+        run: |
+          configuration_slug="$(printf '%s' "${IOS_CONFIGURATION}" | tr '[:upper:]' '[:lower:]')"
+          echo "slug=${configuration_slug}" >> "${GITHUB_OUTPUT}"
+          echo "derived=build/ios-derived-full-${configuration_slug}" >> "${GITHUB_OUTPUT}"
+
+      - name: Cache Swift packages
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.paths.outputs.derived }}/SourcePackages
+          key: aether-spm-${{ runner.os }}-${{ hashFiles('aether/NuvioAetherKit/Package.swift', 'MPVKit/Package.swift') }}-${{ github.run_id }}
+          restore-keys: |
+            aether-spm-${{ runner.os }}-${{ hashFiles('aether/NuvioAetherKit/Package.swift', 'MPVKit/Package.swift') }}-
+            aether-spm-${{ runner.os }}-
+
+      - name: Verify Apple toolchain
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Configure runtime properties
+        if: env.RELEASE_PROPERTIES_BASE64 != ''
+        run: |
+          printf '%s' "${RELEASE_PROPERTIES_BASE64}" | base64 --decode > local.properties
+          sed -i '' -E '/^[[:space:]]*(sdk\.dir|NUVIO_RELEASE_STORE_FILE)[[:space:]]*=/d' local.properties
+
+      - name: Prepare iOS dependencies
+        run: ./scripts/prepare-ios-dependencies.sh
+
+      - name: Add AetherEngine to the Xcode project
+        run: python3 aether/scripts/patch-xcode-project.py
+
+      - name: Resolve Swift packages
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project iosApp/iosApp.xcodeproj \
+            -scheme iosApp \
+            -derivedDataPath "${{ steps.paths.outputs.derived }}"
+          python3 aether/scripts/resolved-versions.py | tee "${RUNNER_TEMP}/aether-versions.txt"
+
+      - name: Build unsigned ${{ inputs.configuration }} IPA
+        run: |
+          (
+            while sleep 60; do
+              echo "::group::Build resources $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+              uptime
+              vm_stat
+              echo "::endgroup::"
+            done
+          ) &
+          monitor_pid=$!
+          trap 'kill "${monitor_pid}" 2>/dev/null || true' EXIT
+          ./scripts/build-ios-ipa.sh
+
+      - name: Verify AetherEngine in the IPA
+        id: ipa
+        run: |
+          slug="${{ steps.paths.outputs.slug }}"
+          built_ipa="$(find build/ios-ipa -maxdepth 1 -type f -name "*-full-${slug}.ipa" -print -quit)"
+          if [[ -z "${built_ipa}" ]]; then
+            echo "No IPA was produced." >&2
+            exit 1
+          fi
+          ./aether/scripts/verify-ipa.sh "${built_ipa}"
+
+          version_file=iosApp/Configuration/Version.xcconfig
+          version="$(sed -nE 's/^[[:space:]]*MARKETING_VERSION[[:space:]]*=[[:space:]]*([^[:space:]#]+).*$/\1/p' "${version_file}" | head -n 1)"
+          build_number="$(sed -nE 's/^[[:space:]]*CURRENT_PROJECT_VERSION[[:space:]]*=[[:space:]]*([^[:space:]#]+).*$/\1/p' "${version_file}" | head -n 1)"
+          ipa_path="build/ios-ipa/nuvio-aether-${version}-${slug}.ipa"
+          mv "${built_ipa}" "${ipa_path}"
+          {
+            echo "path=${ipa_path}"
+            echo "version=${version}"
+          } >> "${GITHUB_OUTPUT}"
+
+          {
+            echo "## Nuvio + AetherEngine IPA"
+            echo
+            echo "- File: $(basename "${ipa_path}")"
+            echo "- Version: ${version} (${build_number}), ${IOS_CONFIGURATION}, unsigned"
+            echo "- Size: $(du -h "${ipa_path}" | cut -f1)"
+            echo "- SHA-256: $(shasum -a 256 "${ipa_path}" | awk '{print $1}')"
+            echo "- Upstream release: ${{ inputs.upstream_tag || 'n/a' }}"
+            echo
+            sed 's/^/- /' "${RUNNER_TEMP}/aether-versions.txt"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v7
+        with:
+          name: nuvio-aether-${{ steps.ipa.outputs.version }}-${{ steps.paths.outputs.slug }}-${{ github.run_number }}
+          path: ${{ steps.ipa.outputs.path }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Publish release
+        id: release
+        if: inputs.publish && inputs.configuration == 'Release'
+        env:
+          VERSION: ${{ steps.ipa.outputs.version }}
+          IPA_PATH: ${{ steps.ipa.outputs.path }}
+          UPSTREAM_TAG: ${{ inputs.upstream_tag }}
+          UPSTREAM_REPOSITORY: ${{ vars.UPSTREAM_REPOSITORY || 'NuvioMedia/NuvioMobile' }}
+        run: |
+          # One release per published build: 0.6.5-aether, then 0.6.5-aether.2 for a rebuild.
+          tag="${VERSION}-aether"
+          suffix=1
+          while gh release view "${tag}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; do
+            suffix=$((suffix + 1))
+            tag="${VERSION}-aether.${suffix}"
+          done
+
+          notes="${RUNNER_TEMP}/release-notes.md"
+          {
+            echo "Nuvio ${VERSION} with the AetherEngine player for iOS: Settings > Playback > Player > AetherEngine."
+            echo
+            if [[ -n "${UPSTREAM_TAG}" ]]; then
+              echo "Follows upstream release [${UPSTREAM_TAG}](https://github.com/${UPSTREAM_REPOSITORY}/releases/tag/${UPSTREAM_TAG})."
+              echo
+            fi
+            echo "Unsigned IPA: install it with AltStore, SideStore or any signing tool."
+            echo
+            echo "### Components"
+            echo
+            sed 's/^/- /' "${RUNNER_TEMP}/aether-versions.txt"
+            if [[ -n "${UPSTREAM_TAG}" ]]; then
+              upstream_notes="$(gh release view "${UPSTREAM_TAG}" --repo "${UPSTREAM_REPOSITORY}" --json body --jq .body 2>/dev/null || true)"
+              if [[ -n "${upstream_notes}" ]]; then
+                echo
+                echo "### Upstream changes"
+                echo
+                printf '%s\n' "${upstream_notes}"
+              fi
+            fi
+          } > "${notes}"
+
+          # Created with the workflow token, so upstream's release-triggered workflows do not run.
+          gh release create "${tag}" "${IPA_PATH}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --target "$(git rev-parse HEAD)" \
+            --title "Nuvio ${VERSION} + AetherEngine" \
+            --notes-file "${notes}"
+          echo "tag=${tag}" >> "${GITHUB_OUTPUT}"
+
+      - name: Update the AltStore source
+        if: steps.release.outputs.tag != ''
+        env:
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.ipa.outputs.version }}
+          IPA_PATH: ${{ steps.ipa.outputs.path }}
+        run: |
+          release_json="${RUNNER_TEMP}/release.json"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${TAG}" > "${release_json}"
+          ipa_name="$(basename "${IPA_PATH}")"
+          download_url="$(jq -r --arg name "${ipa_name}" '.assets[] | select(.name == $name) | .browser_download_url' "${release_json}")"
+          release_date="$(jq -r '.published_at' "${release_json}")"
+          jq -rj '.body // ""' "${release_json}" > "${RUNNER_TEMP}/source-notes.md"
+
+          # The build patched the Xcode project; leave the tree clean before moving to the branch tip.
+          git checkout -- iosApp/iosApp.xcodeproj/project.pbxproj
+          git fetch origin "${BRANCH}"
+          git checkout -B aether-source "origin/${BRANCH}"
+          python3 scripts/update-store-source.py \
+            --source aether/altstore-source.json \
+            --ipa "${IPA_PATH}" \
+            --release-notes "${RUNNER_TEMP}/source-notes.md" \
+            --release-version "${VERSION}" \
+            --release-date "${release_date}" \
+            --download-url "${download_url}"
+
+          if [[ -z "$(git status --porcelain -- aether/altstore-source.json)" ]]; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add aether/altstore-source.json
+          git commit -m "chore(aether): publish ${TAG} to the AltStore source"
+          git push origin "HEAD:${BRANCH}"
