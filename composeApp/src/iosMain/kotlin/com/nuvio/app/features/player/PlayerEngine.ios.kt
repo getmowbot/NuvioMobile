@@ -71,7 +71,7 @@ actual fun PlatformPlayerSurface(
     val latestPlayerSettings = rememberUpdatedState(playerSettings)
 
     val bridge = remember {
-        NuvioPlayerBridgeFactory.create()
+        createIosPlayerBridge(forceMpv = useYoutubeChunkedPlayback || !sourceAudioUrl.isNullOrBlank())
     }
 
     if (bridge == null) {
@@ -297,6 +297,7 @@ actual fun PlatformPlayerSurface(
     // Load file and set initial state
     LaunchedEffect(bridge, sourceUrl, sourceAudioUrl, sourceHeaders, externalSubtitles) {
         bridge.applyIosVideoOutputSettings(latestPlayerSettings.value)
+        bridge.prepareStartPosition(initialPositionMs, initialPositionRequestKey, onInitialPositionHandled)
         bridge.loadFileWithAudio(
             videoUrl = sourceUrl,
             audioUrl = sourceAudioUrl,

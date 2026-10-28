@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="aether_player_name">AetherEngine</string>
+    <string name="aether_player_option_internal_description">MPV: broadest format support and styled ASS subtitles.</string>
+    <string name="aether_player_option_description">Native Apple pipeline: Dolby Vision, HDR10+, Dolby Atmos and lossless audio.</string>
+    <string name="aether_player_option_external_description">Hand playback to another app installed on this device.</string>
+
+    <string name="aether_section_audio">AETHERENGINE AUDIO</string>
+    <string name="aether_section_video">AETHERENGINE VIDEO &amp; SUBTITLES</string>
+
+    <string name="aether_audio_output">Audio output</string>
+    <string name="aether_audio_output_surround">Surround (Dolby Digital Plus 5.1)</string>
+    <string name="aether_audio_output_surround_description">TrueHD, DTS and other codecs Apple cannot play are converted to E-AC-3 5.1. Works with every TV, soundbar and headphones.</string>
+    <string name="aether_audio_output_lossless">Lossless (multichannel PCM)</string>
+    <string name="aether_audio_output_lossless_description">TrueHD, DTS-HD MA and others are decoded bit-perfect up to 7.1. Needs an HDMI or eARC receiver for surround; legacy ARC falls back to stereo.</string>
+    <string name="aether_audio_output_passthrough_note">AAC, AC-3, E-AC-3 (Dolby Atmos), FLAC and ALAC are always passed through untouched.</string>
+
+    <string name="aether_object_audio">Atmos and DTS:X heights</string>
+    <string name="aether_object_audio_off">Off (7.1 core)</string>
+    <string name="aether_object_audio_off_description">TrueHD Atmos and DTS:X play their 7.1 channel core.</string>
+    <string name="aether_object_audio_auto">Automatic</string>
+    <string name="aether_object_audio_auto_description">Render the objects and height channels into your speaker layout: lossless PCM, or Apple Positional Audio over AirPlay.</string>
+    <string name="aether_object_audio_lpcm">Lossless PCM</string>
+    <string name="aether_object_audio_lpcm_description">Always deliver the rendered bed as 24-bit PCM.</string>
+    <string name="aether_object_audio_apac">Apple Positional Audio</string>
+    <string name="aether_object_audio_apac_description">Always deliver it as APAC: spatial audio on AirPods, Atmos over AirPlay. iOS 26 or later.</string>
+    <string name="aether_speaker_layout">Speaker layout</string>
+
+    <string name="aether_dolby_vision">Dolby Vision</string>
+    <string name="aether_dolby_vision_automatic">Automatic</string>
+    <string name="aether_dolby_vision_automatic_description">Dolby Vision whenever the profile and the display support it (profiles 5, 7, 8.1, 8.4 and AV1 10).</string>
+    <string name="aether_dolby_vision_base_layer">HDR10 only</string>
+    <string name="aether_dolby_vision_base_layer_description">Ignore the Dolby Vision layer and play the HDR10 or HLG base. Fixes files with green or purple colours.</string>
+    <string name="aether_dual_layer_dolby_vision">Dolby Vision profile 7 FEL</string>
+    <string name="aether_dual_layer_dolby_vision_description">Compose UHD Blu-ray dual-layer Dolby Vision on the GPU instead of converting it to profile 8.1. Heavier, and E-AC-3 Atmos then plays as its channel bed.</string>
+    <string name="aether_confirm_atmos">Detect Atmos tracks</string>
+    <string name="aether_confirm_atmos_description">Briefly decode audio tracks in the background so Dolby Atmos (E-AC-3 JOC) tracks are labelled.</string>
+    <string name="aether_decode_path">Video decoding</string>
+    <string name="aether_decode_path_automatic">Automatic (hardware)</string>
+    <string name="aether_decode_path_automatic_description">VideoToolbox hardware decoding, software only for formats the hardware cannot play.</string>
+    <string name="aether_decode_path_software">Software</string>
+    <string name="aether_decode_path_software_description">Force FFmpeg / dav1d decoding. Only for files that fail to play otherwise.</string>
+    <string name="aether_native_subtitles">Subtitles in PiP and AirPlay</string>
+    <string name="aether_native_subtitles_description">Also publish text subtitles as native tracks so they appear in Picture in Picture and on AirPlay screens.</string>
+</resources>

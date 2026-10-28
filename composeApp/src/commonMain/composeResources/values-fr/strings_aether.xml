@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="aether_player_name">AetherEngine</string>
+    <string name="aether_player_option_internal_description">MPV : la plus large compatibilité de formats et les sous-titres ASS stylés.</string>
+    <string name="aether_player_option_description">Pipeline natif Apple : Dolby Vision, HDR10+, Dolby Atmos et audio sans perte.</string>
+    <string name="aether_player_option_external_description">Confie la lecture à une autre application installée sur l’appareil.</string>
+
+    <string name="aether_section_audio">AUDIO AETHERENGINE</string>
+    <string name="aether_section_video">VIDÉO ET SOUS-TITRES AETHERENGINE</string>
+
+    <string name="aether_audio_output">Sortie audio</string>
+    <string name="aether_audio_output_surround">Surround (Dolby Digital Plus 5.1)</string>
+    <string name="aether_audio_output_surround_description">TrueHD, DTS et les autres codecs non lus par Apple sont convertis en E-AC-3 5.1. Fonctionne avec toutes les TV, barres de son et casques.</string>
+    <string name="aether_audio_output_lossless">Sans perte (PCM multicanal)</string>
+    <string name="aether_audio_output_lossless_description">TrueHD, DTS-HD MA et les autres sont décodés bit à bit jusqu’en 7.1. Nécessite un ampli HDMI ou eARC pour le surround ; un ARC classique repasse en stéréo.</string>
+    <string name="aether_audio_output_passthrough_note">AAC, AC-3, E-AC-3 (Dolby Atmos), FLAC et ALAC sont toujours transmis tels quels.</string>
+
+    <string name="aether_object_audio">Hauteurs Atmos et DTS:X</string>
+    <string name="aether_object_audio_off">Désactivé (cœur 7.1)</string>
+    <string name="aether_object_audio_off_description">Le TrueHD Atmos et le DTS:X sont lus via leur cœur 7.1.</string>
+    <string name="aether_object_audio_auto">Automatique</string>
+    <string name="aether_object_audio_auto_description">Restitue les objets et les canaux de hauteur sur votre configuration d’enceintes : PCM sans perte, ou audio positionnel Apple en AirPlay.</string>
+    <string name="aether_object_audio_lpcm">PCM sans perte</string>
+    <string name="aether_object_audio_lpcm_description">Transmet toujours le rendu en PCM 24 bits.</string>
+    <string name="aether_object_audio_apac">Audio positionnel Apple</string>
+    <string name="aether_object_audio_apac_description">Transmet toujours en APAC : audio spatial sur AirPods, Atmos en AirPlay. iOS 26 ou plus récent.</string>
+    <string name="aether_speaker_layout">Configuration des enceintes</string>
+
+    <string name="aether_dolby_vision">Dolby Vision</string>
+    <string name="aether_dolby_vision_automatic">Automatique</string>
+    <string name="aether_dolby_vision_automatic_description">Dolby Vision dès que le profil et l’écran le permettent (profils 5, 7, 8.1, 8.4 et AV1 10).</string>
+    <string name="aether_dolby_vision_base_layer">HDR10 uniquement</string>
+    <string name="aether_dolby_vision_base_layer_description">Ignore la couche Dolby Vision et lit la base HDR10 ou HLG. Corrige les fichiers aux couleurs vertes ou violettes.</string>
+    <string name="aether_dual_layer_dolby_vision">Dolby Vision profil 7 FEL</string>
+    <string name="aether_dual_layer_dolby_vision_description">Compose le Dolby Vision double couche des UHD Blu-ray sur le GPU au lieu de le convertir en profil 8.1. Plus gourmand, et l’E-AC-3 Atmos est alors lu via son socle de canaux.</string>
+    <string name="aether_confirm_atmos">Détecter les pistes Atmos</string>
+    <string name="aether_confirm_atmos_description">Décode brièvement les pistes audio en arrière-plan pour signaler celles en Dolby Atmos (E-AC-3 JOC).</string>
+    <string name="aether_decode_path">Décodage vidéo</string>
+    <string name="aether_decode_path_automatic">Automatique (matériel)</string>
+    <string name="aether_decode_path_automatic_description">Décodage matériel VideoToolbox, logiciel uniquement pour les formats que le matériel ne lit pas.</string>
+    <string name="aether_decode_path_software">Logiciel</string>
+    <string name="aether_decode_path_software_description">Force le décodage FFmpeg / dav1d. Uniquement pour les fichiers qui ne se lisent pas autrement.</string>
+    <string name="aether_native_subtitles">Sous-titres en PiP et AirPlay</string>
+    <string name="aether_native_subtitles_description">Publie aussi les sous-titres texte comme pistes natives pour qu’ils s’affichent en image dans l’image et sur les écrans AirPlay.</string>
+</resources>

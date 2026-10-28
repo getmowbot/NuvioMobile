@@ -21,7 +21,7 @@ final class PlayerNowPlayingController {
         let token: Any
     }
 
-    private weak var owner: MPVPlayerViewController?
+    private weak var owner: PlayerNowPlayingOwner?
     private var metadata = Metadata()
     private var playbackState = PlaybackState()
     private var currentArtworkImage: UIImage?
@@ -30,7 +30,7 @@ final class PlayerNowPlayingController {
     private var remoteTargets: [RemoteCommandTarget] = []
     private let artworkCache = NSCache<NSString, UIImage>()
 
-    init(owner: MPVPlayerViewController) {
+    init(owner: PlayerNowPlayingOwner) {
         self.owner = owner
         configureRemoteCommands()
     }

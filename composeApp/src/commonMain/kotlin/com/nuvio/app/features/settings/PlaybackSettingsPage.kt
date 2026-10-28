@@ -374,6 +374,7 @@ private fun PlaybackSettingsSection(
     var p2pCacheClearFailed by remember { mutableStateOf(false) }
     val pluginsEnabled = AppFeaturePolicy.pluginsEnabled
     val autoPlayPlayerSettings by PlayerSettingsRepository.uiState.collectAsStateWithLifecycle()
+    val aetherSettings = rememberAetherSettings()
     val p2pSettings by remember {
         P2pSettingsRepository.ensureLoaded()
         P2pSettingsRepository.uiState
@@ -448,6 +449,8 @@ private fun PlaybackSettingsSection(
                     title = stringResource(Res.string.settings_playback_player_preference),
                     description = if (autoPlayPlayerSettings.externalPlayerEnabled) {
                         stringResource(Res.string.settings_playback_player_preference_external)
+                    } else if (isIos && aetherSettings.enabled) {
+                        aetherPlayerName()
                     } else {
                         stringResource(Res.string.settings_playback_player_preference_internal)
                     },
@@ -1283,7 +1286,9 @@ private fun PlaybackSettingsSection(
             }
         }
 
-        if (isIos) {
+        if (isIos && aetherSettings.enabled && !autoPlayPlayerSettings.externalPlayerEnabled) {
+            AetherSettingsSections(isTablet = isTablet, settings = aetherSettings)
+        } else if (isIos) {
             SettingsSection(
                 title = stringResource(Res.string.settings_playback_ios_audio_output_section),
                 isTablet = isTablet,
@@ -1778,7 +1783,17 @@ private fun PlaybackSettingsSection(
         )
     }
 
-    if (showExternalPlayerDialog) {
+    if (showExternalPlayerDialog && isIos) {
+        IosPlayerPreferenceDialog(
+            isExternal = autoPlayPlayerSettings.externalPlayerEnabled,
+            isAether = aetherSettings.enabled,
+            onChoiceSelected = { choice ->
+                applyIosPlayerChoice(choice)
+                showExternalPlayerDialog = false
+            },
+            onDismiss = { showExternalPlayerDialog = false },
+        )
+    } else if (showExternalPlayerDialog) {
         PlayerPreferenceDialog(
             isExternal = autoPlayPlayerSettings.externalPlayerEnabled,
             onPreferenceSelected = { external ->
