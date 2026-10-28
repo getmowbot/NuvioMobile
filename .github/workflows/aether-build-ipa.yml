@@ -116,8 +116,12 @@ jobs:
           xcrun --sdk iphoneos --show-sdk-version
 
       - name: Configure runtime properties
-        if: env.RELEASE_PROPERTIES_BASE64 != ''
         run: |
+          if [[ -z "${RELEASE_PROPERTIES_BASE64}" ]]; then
+            # The Gradle build requires the file; every key it reads has a default.
+            echo "# No NUVIO_LOCAL_PROPERTIES_BASE64 secret: optional API keys left empty." > local.properties
+            exit 0
+          fi
           printf '%s' "${RELEASE_PROPERTIES_BASE64}" | base64 --decode > local.properties
           sed -i '' -E '/^[[:space:]]*(sdk\.dir|NUVIO_RELEASE_STORE_FILE)[[:space:]]*=/d' local.properties
 
