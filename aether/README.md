@@ -36,8 +36,11 @@ Chaque version est publiée dans les *Releases* du fork (`<version>-aether`, IPA
 dans une source AltStore / SideStore à ajouter une fois :
 
 ```
-https://raw.githubusercontent.com/<propriétaire>/NuvioMobile/cmp-rewrite/aether/altstore-source.json
+https://raw.githubusercontent.com/getmowbot/NuvioMobile/cmp-rewrite/aether/altstore-source.json
 ```
+
+(La source se remplit à la première publication ; le dépôt doit rester public pour qu'AltStore
+puisse lire la source et télécharger l'IPA.)
 
 L'app garde l'identifiant `com.nuvio.media` : elle remplace la version officielle sur l'appareil.
 AetherEngine 7 demande **iOS 18 minimum**, donc cette build aussi.
