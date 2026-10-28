@@ -41,6 +41,9 @@ concurrency:
 jobs:
   sync:
     name: Merge upstream
+    # Fork-only: upstream is only ever read (fetch, release list); everything is written to this
+    # repository, and the workflow never runs in the upstream repository itself.
+    if: github.repository != 'NuvioMedia/NuvioMobile'
     runs-on: ubuntu-latest
     env:
       UPSTREAM_REPOSITORY: ${{ vars.UPSTREAM_REPOSITORY || 'NuvioMedia/NuvioMobile' }}

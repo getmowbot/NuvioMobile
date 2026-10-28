@@ -50,6 +50,8 @@ concurrency:
 jobs:
   build:
     name: Build ${{ inputs.configuration }} IPA
+    # Fork-only: never runs in the upstream repository.
+    if: github.repository != 'NuvioMedia/NuvioMobile'
     runs-on: ${{ vars.AETHER_MACOS_RUNNER || 'xcode-27' }}
     timeout-minutes: 150
     env:
@@ -218,15 +220,8 @@ jobs:
             echo "### Components"
             echo
             sed 's/^/- /' "${RUNNER_TEMP}/aether-versions.txt"
-            if [[ -n "${UPSTREAM_TAG}" ]]; then
-              upstream_notes="$(gh release view "${UPSTREAM_TAG}" --repo "${UPSTREAM_REPOSITORY}" --json body --jq .body 2>/dev/null || true)"
-              if [[ -n "${upstream_notes}" ]]; then
-                echo
-                echo "### Upstream changes"
-                echo
-                printf '%s\n' "${upstream_notes}"
-              fi
-            fi
+            # Upstream's own notes are deliberately not copied: their @mentions would notify
+            # upstream contributors from this fork. The link above is enough.
           } > "${notes}"
 
           # Created with the workflow token, so upstream's release-triggered workflows do not run.

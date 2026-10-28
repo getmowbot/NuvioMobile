@@ -57,6 +57,18 @@ Deux workflows, dans `.github/workflows/` :
 - **Aether - Build IPA** (`aether-build-ipa.yml`), à la demande ou appelé par le précédent :
   build Release non signé, vérifications, release GitHub et mise à jour de la source AltStore.
 
+### Rien ne part vers NuvioMedia
+
+Le dépôt d'origine n'est jamais que **lu** (récupération de ses releases). Tout ce que les
+workflows écrivent (fusions, releases, source AltStore, issues) va dans ce fork, et ils refusent
+de s'exécuter dans le dépôt d'origine. Les notes de release ne recopient pas celles d'upstream,
+pour ne pas notifier ses contributeurs via leurs `@mentions`.
+
+Seul piège, côté GitHub : sur un fork, le bouton *New pull request* propose par défaut le dépôt
+d'origine comme cible. Pour fusionner une branche dans ce fork, choisir
+`getmowbot/NuvioMobile` comme *base repository* (ou fusionner en local avec git), et ne jamais
+cliquer sur *Contribute* / *Open pull request* vers `NuvioMedia/NuvioMobile`.
+
 ### Mise en place (une fois)
 
 1. Fusionner ces changements dans la branche par défaut (`cmp-rewrite`) : GitHub n'exécute les
