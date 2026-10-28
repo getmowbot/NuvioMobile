@@ -44,6 +44,19 @@ if [[ -f "${kit_binary}" ]]; then
 fi
 
 executable="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "${app_path}/Info.plist")"
+
+# Every @rpath framework the app or NuvioAetherKit loads must be in the bundle, or dyld aborts
+# the app at launch.
+for binary in "${app_path}/${executable}" "${kit_binary}"; do
+    [[ -f "${binary}" ]] || continue
+    while read -r dependency; do
+        if [[ ! -f "${frameworks}/${dependency#@rpath/}" ]]; then
+            echo "error: $(basename "${binary}") loads ${dependency}, which is not embedded" >&2
+            status=1
+        fi
+    done < <(xcrun otool -L "${binary}" | awk 'NR > 1 && $1 ~ /^@rpath\/.*\.framework\// { print $1 }')
+done
+
 if xcrun nm -m "${app_path}/${executable}" | grep -E ' _avcodec_open2 .*\(from AetherLibavcodec\)' >/dev/null; then
     echo "error: the app executable links AetherEngine's FFmpeg directly; AetherEngine must only be linked into NuvioAetherKit." >&2
     status=1

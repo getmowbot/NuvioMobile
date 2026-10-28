@@ -5,8 +5,10 @@ The fork keeps upstream's project.pbxproj untouched in git, so merging upstream 
 conflicts on it; this script applies the AetherEngine changes on top of whatever upstream ships:
 
   * a local package reference to aether/NuvioAetherKit,
-  * its NuvioAetherKit product linked into the `iosApp` target (Xcode embeds the dynamic
-    framework and the AetherLib* FFmpeg frameworks it depends on),
+  * its NuvioAetherKit product linked into the `iosApp` target,
+  * an "Embed Frameworks" phase copying NuvioAetherKit.framework into the app: Xcode links a
+    dynamic package product without embedding it (the AetherLib* FFmpeg frameworks it depends
+    on are binary targets, which Xcode does embed on its own),
   * an iOS deployment target of at least 18.0, which AetherEngine 7 requires.
 
 Idempotent: running it on an already patched project changes nothing.
@@ -25,6 +27,8 @@ MIN_IOS = (18, 0)
 BUILD_FILE_ID = "AE7E4E000000000000000001"
 PRODUCT_DEP_ID = "AE7E4E000000000000000002"
 PACKAGE_REF_ID = "AE7E4E000000000000000003"
+EMBED_BUILD_FILE_ID = "AE7E4E000000000000000004"
+EMBED_PHASE_ID = "AE7E4E000000000000000005"
 
 REPOSITORY_ROOT = pathlib.Path(__file__).resolve().parents[2]
 DEFAULT_PROJECT = REPOSITORY_ROOT / "iosApp" / "iosApp.xcodeproj" / "project.pbxproj"
@@ -87,6 +91,17 @@ def app_target_id(text: str) -> str:
     raise AssertionError
 
 
+def insert_build_phase(text: str, target_id: str, after_id: str, entry: str) -> str:
+    """Adds `entry` to the target's buildPhases right after the phase `after_id`."""
+    start, end = object_block(text, target_id)
+    block = text[start:end]
+    match = re.search(r"\n(\t+)" + after_id + r"(?: /\*[^*]*\*/)?,\n", block)
+    if not match:
+        fail(f"build phase {after_id} not found in target {target_id}")
+    block = block[:match.end()] + f"{match.group(1)}{entry},\n" + block[match.end():]
+    return text[:start] + block + text[end:]
+
+
 def frameworks_phase_id(text: str, target_id: str) -> str:
     start, end = object_block(text, target_id)
     match = re.search(r"([0-9A-F]{24}) /\* Frameworks \*/", text[start:end])
@@ -126,9 +141,14 @@ def raise_deployment_targets(text: str) -> str:
 
 def patch(text: str) -> str:
     text = raise_deployment_targets(text)
-    if PACKAGE_REF_ID in text:
-        return text
+    if PACKAGE_REF_ID not in text:
+        text = add_package(text)
+    if EMBED_PHASE_ID not in text:
+        text = add_embed_phase(text)
+    return text
 
+
+def add_package(text: str) -> str:
     target_id = app_target_id(text)
     phase_id = frameworks_phase_id(text, target_id)
 
@@ -166,6 +186,38 @@ def patch(text: str) -> str:
     return text
 
 
+def add_embed_phase(text: str) -> str:
+    target_id = app_target_id(text)
+    text = insert_after(
+        text,
+        "/* Begin PBXBuildFile section */\n",
+        f"\t\t{EMBED_BUILD_FILE_ID} /* {PRODUCT} in Embed Frameworks */ = "
+        f"{{isa = PBXBuildFile; productRef = {PRODUCT_DEP_ID} /* {PRODUCT} */; "
+        f"settings = {{ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }}; }};\n",
+    )
+    text = add_section_entry(
+        text,
+        "PBXCopyFilesBuildPhase",
+        f"\t\t{EMBED_PHASE_ID} /* Embed Frameworks */ = {{\n"
+        f"\t\t\tisa = PBXCopyFilesBuildPhase;\n"
+        f"\t\t\tbuildActionMask = 2147483647;\n"
+        f'\t\t\tdstPath = "";\n'
+        f"\t\t\tdstSubfolderSpec = 10;\n"
+        f"\t\t\tfiles = (\n"
+        f"\t\t\t\t{EMBED_BUILD_FILE_ID} /* {PRODUCT} in Embed Frameworks */,\n"
+        f"\t\t\t);\n"
+        f'\t\t\tname = "Embed Frameworks";\n'
+        f"\t\t\trunOnlyForDeploymentPostprocessing = 0;\n"
+        f"\t\t}};\n",
+    )
+    return insert_build_phase(
+        text,
+        target_id,
+        frameworks_phase_id(text, target_id),
+        f"{EMBED_PHASE_ID} /* Embed Frameworks */",
+    )
+
+
 def main() -> None:
     project = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_PROJECT
     if not project.is_file():
@@ -176,7 +228,7 @@ def main() -> None:
         print(f"{project}: already patched")
         return
     project.write_text(patched, encoding="utf-8")
-    print(f"{project}: added {PRODUCT} and raised the iOS deployment target to {MIN_IOS[0]}.{MIN_IOS[1]}")
+    print(f"{project}: added and embedded {PRODUCT}, raised the iOS deployment target to {MIN_IOS[0]}.{MIN_IOS[1]}")
 
 
 if __name__ == "__main__":
